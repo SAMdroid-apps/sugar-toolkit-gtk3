@@ -36,7 +36,6 @@ from sugar3.graphics import palettegroup
 from sugar3.graphics import animator
 from sugar3.graphics import style
 
-
 def _calculate_gap(a, b):
     """Helper function to find the gap position and size of widget a"""
     # Test for each side if the palette and invoker are
@@ -1052,10 +1051,6 @@ class Invoker(GObject.GObject):
         if not self.props.cache_palette:
             self.set_palette(None)
 
-    def primary_text_clicked(self):
-        """Implemented by invokers that can be clicked"""
-        pass
-
 
 class WidgetInvoker(Invoker):
 
@@ -1349,9 +1344,6 @@ class ToolInvoker(WidgetInvoker):
         else:
             return self.LEFT + self.RIGHT
 
-    def primary_text_clicked(self):
-        self._widget.emit('clicked')
-
 
 class CellRendererInvoker(Invoker):
 
@@ -1420,8 +1412,12 @@ class CellRendererInvoker(Invoker):
         if self.point_in_cell_renderer(event.x, event.y):
 
             tree_view = self._tree_view
-            path, column_, x_, y_ = tree_view.get_path_at_pos(int(event.x),
-                                                              int(event.y))
+            get_path_return = tree_view.get_path_at_pos(int(event.x),
+                                                             int(event.y))
+            if isinstance(get_path_return, tuple):
+                path, column_, x_, y_ = get_path_return
+            else:
+                path = get_path_return
             if path != self.path:
                 if self.path is not None:
                     self._redraw_path(self.path)
@@ -1447,6 +1443,8 @@ class CellRendererInvoker(Invoker):
             self.notify_mouse_leave()
 
     def _redraw_path(self, path):
+        if type(self._tree_view) is Gtk.IconView:
+            return
         column = None
         for column in self._tree_view.get_columns():
             if self._cell_renderer in column.get_cells():
@@ -1466,8 +1464,12 @@ class CellRendererInvoker(Invoker):
         if event.button == 1 and self.point_in_cell_renderer(event.x,
                                                              event.y):
             tree_view = self._tree_view
-            path, column_, x_, y_ = tree_view.get_path_at_pos(int(event.x),
-                                                              int(event.y))
+            get_path_return = tree_view.get_path_at_pos(int(event.x),
+                                                             int(event.y))
+            if isinstance(get_path_return, tuple):
+                path, column_, x_, y_ = get_path_return
+            else:
+                path = get_path_return
             self._cell_renderer.emit('clicked', path)
             # So the treeview receives it and knows a drag isn't going on
             return False
@@ -1487,15 +1489,19 @@ class CellRendererInvoker(Invoker):
         if pos is None:
             return False
 
-        path_, column, x, y_ = pos
+        if isinstance(pos, tuple): #Tree View
+            path_, column, x, y_ = pos
 
-        for cell_renderer in column.get_cells():
-            if cell_renderer == self._cell_renderer:
-                cell_x, cell_width = column.cell_get_position(cell_renderer)
-                if x > cell_x and x < (cell_x + cell_width):
-                    return True
-                return False
-
+            for cell_renderer in column.get_cells():
+                if cell_renderer == self._cell_renderer:
+                    cell_x, cell_width = column.cell_get_position(cell_renderer)
+                    if x > cell_x and x < (cell_x + cell_width):
+                        return True
+                    return False
+        else: #Icon View
+            if pos:
+                return True
+            
         return False
 
     def get_toplevel(self):

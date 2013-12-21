@@ -30,6 +30,7 @@ import dbus
 
 from sugar3.datastore import datastore
 from sugar3.activity.activity import PREVIEW_SIZE
+from sugar3.graphics.xocolor import XoColor
 
 
 J_DBUS_SERVICE = 'org.laptop.Journal'
@@ -40,8 +41,14 @@ FILTER_TYPE_MIME_BY_ACTIVITY = 'mime_by_activity'
 FILTER_TYPE_GENERIC_MIME = 'generic_mime'
 FILTER_TYPE_ACTIVITY = 'activity'
 
+FAV_ICON_PATH = '/usr/share/icons/sugar/scalable/emblems/emblem-favorite.svg'
 
-def get_preview_pixbuf(preview_data, width=-1, height=-1):
+def _hex_to_rgb(value):
+    value = value.lstrip('#')
+    lv = len(value)
+    return tuple(int(value[i:i+lv/3], 16)/255 for i in range(0, lv, lv/3))
+
+def get_preview_pixbuf(preview_data, width=-1, height=-1, isFav = False):
     """Retrive a pixbuf with the content of the preview field
 
     Keyword arguments:
@@ -89,6 +96,38 @@ def get_preview_pixbuf(preview_data, width=-1, height=-1):
             cr.paint()
             cr.set_source_surface(surface)
             cr.paint()
+            
+            if isFav:
+                #fav = cairo.SVGSurface(FAV_ICON_PATH, 72, 72)
+                #cr.set_source_surface(fav)
+                
+                colors = XoColor()
+                fill = _hex_to_rgb(colors.get_fill_color())
+                logging.error(fill)
+                stroke = _hex_to_rgb(colors.get_stroke_color())
+                
+                star_path = [(27.5, 5.149), (34.76,19.865), (51,22.224), 
+                    (39.251,33.68), (42.025,49.852), (27.5,42.215), 
+                    (12.976,49.852), (15.75,33.68), (4,22.224), (20.237,19.865),
+                    (27.5, 5.149)]
+                    
+                cr.move_to(star_path[0][0], star_path[0][1])
+                for i in star_path[1:]:
+                    cr.line_to(i[0], i[1])
+                cr.close_path()
+                
+                cr.set_source_rgba(fill[0], fill[1], fill[2], 1)
+                cr.fill()
+                
+                cr.move_to(star_path[0][0], star_path[0][1])
+                for i in star_path[1:]:
+                    cr.line_to(i[0], i[1])
+                cr.close_path()
+                
+                cr.set_source_rgba(stroke[0], stroke[1], stroke[2], 1)
+                cr.set_line_cap(cairo.LINE_CAP_ROUND)
+                cr.set_line_width(4)
+                cr.stroke()
 
             pixbuf = Gdk.pixbuf_get_from_surface(preview_surface, 0, 0,
                                                  width, height)
