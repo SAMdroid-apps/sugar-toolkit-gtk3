@@ -256,6 +256,9 @@ class Activity(Window, Gtk.Container):
             the base class __init()__ before doing Activity specific things.
 
         """
+        
+        logging.error(os.environ)
+        
         # Stuff that needs to be done early
         icons_path = os.path.join(get_bundle_path(), 'icons')
         Gtk.IconTheme.get_default().append_search_path(icons_path)
@@ -388,6 +391,7 @@ class Activity(Window, Gtk.Container):
         jobject.metadata['share-scope'] = SCOPE_PRIVATE
         jobject.metadata['icon-color'] = icon_color
         jobject.metadata['launch-times'] = str(int(time.time()))
+        jobject.metadata['childern'] = ''
         jobject.file_path = ''
 
         # FIXME: We should be able to get an ID synchronously from the DS,
@@ -501,6 +505,16 @@ class Activity(Window, Gtk.Container):
             canvas.connect('map', self.__canvas_map_cb)
 
     canvas = property(get_canvas, set_canvas)
+    
+    def add_child(self, child_uid):
+        """
+        Attach a child datastore entry (eg: photo)
+        To this activitys datastore entry so thay are displayed together
+        """
+        if self.metadata.get('children'):
+            self.metadata['children'] += '|' + str(child_uid)
+        else:
+            self.metadata['children'] = str(child_uid)
 
     def __screen_size_changed_cb(self, screen):
         self._adapt_window_to_screen()
