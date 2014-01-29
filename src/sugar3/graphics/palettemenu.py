@@ -78,7 +78,7 @@ class PaletteMenuItem(Gtk.EventBox):
     }
 
     def __init__(self, text_label=None, icon_name=None, text_maxlen=60,
-                 xo_color=None, file_name=None):
+                 xo_color=None, file_name=None, markup_label=None):
 
         Gtk.EventBox.__init__(self)
         self.set_above_child(True)
@@ -112,7 +112,11 @@ class PaletteMenuItem(Gtk.EventBox):
                                   padding=style.DEFAULT_PADDING)
 
         align = Gtk.Alignment(xalign=0.0, yalign=0.5, xscale=0.0, yscale=0.0)
-        self.label = Gtk.Label(text_label)
+        self.label = Gtk.Label()
+        if markup_label:
+            self.label.set_markup(markup_label)
+        else:
+            self.label.set_text(text_label)
         if text_maxlen > 0:
             self.label.set_max_width_chars(text_maxlen)
             self.label.set_ellipsize(Pango.EllipsizeMode.MIDDLE)

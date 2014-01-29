@@ -43,6 +43,10 @@ class ZipExtractException(Exception):
     pass
 
 
+class NotEnoughSpaceException(Exception):
+    pass
+
+
 class RegistrationException(Exception):
     pass
 
@@ -188,7 +192,7 @@ class Bundle(object):
         logging.error('{} > {}?'.format(z_kb, kb_left))
         
         if z_kb > kb_left:
-            raise ZipExtractException("Not enough space")
+            raise NotEnoughSpaceException
 
         # zipfile provides API that in theory would let us do this
         # correctly by hand, but handling all the oddities of

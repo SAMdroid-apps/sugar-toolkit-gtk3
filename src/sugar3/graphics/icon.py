@@ -511,7 +511,6 @@ class Icon(Gtk.Image):
     scale = GObject.property(
         type=float, setter=set_scale)
 
-
 class EventIcon(Gtk.EventBox):
     """
     An Icon class that provides access to mouse events and that can act as a
