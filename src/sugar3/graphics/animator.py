@@ -73,6 +73,8 @@ class Animator(GObject.GObject):
             self._widget.remove_tick_callback(self._timeout_sid)
             self._timeout_sid = 0
             self.emit('completed')
+        for animation in self._animations:
+            animation.do_stop()
 
     def _next_frame_cb(self, *args):
         current_time = min(self._duration, time.time() - self._start_time)
@@ -106,8 +108,13 @@ class Animation(object):
                 frame = change * (-pow(2, -10 * t / duration) + 1) + start
             elif easing == EASE_IN_EXPO:
                 frame = change * pow(2, 10 * (t / duration - 1)) + start
+            else:
+                frame = change * (t / duration) + start
 
         self.next_frame(frame)
 
     def next_frame(self, frame):
+        pass
+
+    def do_stop(self):
         pass

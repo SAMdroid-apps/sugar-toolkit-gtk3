@@ -279,7 +279,6 @@ class _PaletteWindowWidget(Gtk.Window):
 
         self._palette = palette
         self.set_decorated(False)
-        self.set_resizable(False)
         self.set_position(Gtk.WindowPosition.NONE)
 
         context = self.get_style_context()
@@ -317,7 +316,7 @@ class _PaletteWindowWidget(Gtk.Window):
             label_width = self._palette.get_label_width()
         size = max(natural, label_width + 2 * self.get_border_width(),
                    style.GRID_CELL_SIZE * 3)
-        return size, size
+        return -1, size
 
     def do_size_allocate(self, allocation):
         Gtk.Window.do_size_allocate(self, allocation)
@@ -505,12 +504,8 @@ class PaletteWindow(GObject.GObject):
         self._up = False
         self._palette_state = None
         self._widget = None
-
-        self._popup_anim = animator.Animator(.5, 10)
-        self._popup_anim.add(_PopupAnimation(self))
-
-        self._popdown_anim = animator.Animator(0.6, 10)
-        self._popdown_anim.add(_PopdownAnimation(self))
+        self._popup_anim = None
+        self._popdown_anim = None
 
         GObject.GObject.__init__(self, **kwargs)
 
@@ -530,6 +525,13 @@ class PaletteWindow(GObject.GObject):
 
         self._mouse_detector.connect('motion-slow', self._mouse_slow_cb)
         self._mouse_detector.parent = self._widget
+
+        self._popup_anim = animator.Animator(
+            0.5, widget=self._widget, easing=None)
+        self._popup_anim.add(_PopupAnimation(self, self._widget))
+
+        self._popdown_anim = animator.Animator(0.6, widget=self._widget)
+        self._popdown_anim.add(_PopdownAnimation(self, self._widget))
 
     def _teardown_widget(self):
         self._widget.disconnect_by_func(self.__show_cb)
@@ -657,14 +659,15 @@ class PaletteWindow(GObject.GObject):
 
         self._popdown_anim.stop()
 
+        self._widget.popup(self._invoker)
+        self._widget.set_opacity(1.0)
+        # we have to invoke update_position() twice
+        # since WM could ignore first move() request
+        self.update_position()
         if not immediate:
             self._popup_anim.start()
         else:
             self._popup_anim.stop()
-            self._widget.popup(self._invoker)
-            # we have to invoke update_position() twice
-            # since WM could ignore first move() request
-            self.update_position()
 
     def popdown(self, immediate=False):
         self._popup_anim.stop()
@@ -760,24 +763,41 @@ class PaletteWindow(GObject.GObject):
 
 class _PopupAnimation(animator.Animation):
 
-    def __init__(self, palette):
+    def __init__(self, palette, widget):
         animator.Animation.__init__(self, 0.0, 1.0)
         self._palette = palette
+        self._widget = widget
+        self._aim = None
 
     def next_frame(self, current):
         if current == 1.0:
-            self._palette.popup(immediate=True)
+            self._aim = None  # Reset if label changes next time
+            self._widget.get_child().show()
+        else:
+            self._widget.get_child().hide()
+
+        current_width, current_height = self._widget.get_size()
+        if self._aim is None:
+            self._aim = current_width
+
+        self._widget.resize(self._aim * current, current_height)
+        self._widget.queue_resize()
 
 
 class _PopdownAnimation(animator.Animation):
 
-    def __init__(self, palette):
+    def __init__(self, palette, widget):
         animator.Animation.__init__(self, 0.0, 1.0)
         self._palette = palette
+        self._widget = widget
 
     def next_frame(self, current):
+        self._widget.set_opacity(1.0 - current)
         if current == 1.0:
             self._palette.popdown(immediate=True)
+
+    def do_stop(self):
+        self._widget.set_opacity(1.0)
 
 
 class Invoker(GObject.GObject):

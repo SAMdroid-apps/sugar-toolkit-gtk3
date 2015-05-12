@@ -23,6 +23,7 @@
 STABLE.
 """
 import textwrap
+import logging
 
 from gi.repository import GLib
 from gi.repository import Gtk
@@ -113,6 +114,7 @@ class Palette(PaletteWindow):
         self._icon = None
         self._icon_visible = True
         self._palette_state = self.PRIMARY
+        self._secondary_anim = None
 
         self._primary_event_box = Gtk.EventBox()
         self._primary_event_box.show()
@@ -155,9 +157,6 @@ class Palette(PaletteWindow):
         self._separator = Gtk.HSeparator()
         self._secondary_box.pack_start(self._separator, True, True, 0)
 
-        self._secondary_anim = animator.Animator(2.0, 10)
-        self._secondary_anim.add(_SecondaryAnimation(self))
-
         # we init after initializing all of our containers
         PaletteWindow.__init__(self, **kwargs)
 
@@ -185,6 +184,9 @@ class Palette(PaletteWindow):
         PaletteWindow._setup_widget(self)
         self._widget.connect('destroy', self.__destroy_cb)
         self._widget.connect('map', self.__map_cb)
+
+        self._secondary_anim = animator.Animator(2.0, widget=self._widget, easing=None)
+        self._secondary_anim.add(_SecondaryAnimation(self, self._widget))
 
     def __map_cb(self, *args):
         # Fixes #4463
@@ -488,10 +490,28 @@ class PaletteActionBar(Gtk.HButtonBox):
 
 class _SecondaryAnimation(animator.Animation):
 
-    def __init__(self, palette):
+
+    def __init__(self, palette, widget):
         animator.Animation.__init__(self, 0.0, 1.0)
         self._palette = palette
+        self._widget = widget
+        self._aim = None
 
     def next_frame(self, current):
+        if current < 0.75:
+            return
+
+        if self._aim is None:
+            self._aim, _ = self._palette._secondary_box.get_preferred_height()
+            self._aim = style.PALATTE_HEADER_HEIGHT * 2  # TODO!
+
+        current_width, current_height = self._widget.get_size()
+        current = (current - 0.75) * 4  # Animation starts at 1.5
+        h = style.PALATTE_HEADER_HEIGHT + current * self._aim
+        logging.error('now <%r %rx%r>, aim %r, going to %r', current, current_width, current_height, self._aim, h)
+        self._widget.resize(
+            current_width, h)
+
         if current == 1.0:
+            self._aim = None  # Reset if label changes next time
             self._palette.set_palette_state(Palette.SECONDARY)
