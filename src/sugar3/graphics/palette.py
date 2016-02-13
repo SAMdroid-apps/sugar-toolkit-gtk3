@@ -110,6 +110,7 @@ class Palette(PaletteWindow):
 
     __gsignals__ = {
         'activate': (GObject.SignalFlags.RUN_FIRST, None, ([])),
+        'secondary-popup': (GObject.SignalFlags.RUN_FIRST, None, ([])),
     }
 
     __gtype_name__ = 'SugarPalette'
@@ -447,6 +448,7 @@ class Palette(PaletteWindow):
             self._secondary_box.hide()
         elif state == self.SECONDARY:
             self._secondary_box.show()
+            self.emit('secondary-popup')
             self.update_position()
 
         self._palette_state = state

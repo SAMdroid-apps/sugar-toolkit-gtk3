@@ -17,9 +17,13 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
+from gi.repository import GObject
 from gi.repository import Gdk
 from gi.repository import Gtk
 import gettext
+
+from jarabe.onboard.hotspot import get_widget_registry
+from jarabe.onboard.controller import start_onboarding_controller
 
 from sugar3.graphics.toolbutton import ToolButton
 from sugar3.graphics.toolbarbox import ToolbarButton
@@ -73,10 +77,13 @@ class ActivityToolbarButton(ToolbarButton):
         toolbar = ActivityToolbar(activity, orientation_left=True)
 
         ToolbarButton.__init__(self, page=toolbar, **kwargs)
+        get_widget_registry().register('activity_button', self)
 
         icon = _create_activity_icon(activity.metadata)
         self.set_icon_widget(icon)
         icon.show()
+
+        start_onboarding_controller()
 
 
 class StopButton(ToolButton):
@@ -169,6 +176,7 @@ class TitleEntry(Gtk.ToolItem):
 
     def __init__(self, activity, **kwargs):
         Gtk.ToolItem.__init__(self)
+        get_widget_registry().register('title_entry', self)
         self.set_expand(False)
 
         self.entry = Gtk.Entry(**kwargs)
@@ -228,8 +236,11 @@ class TitleEntry(Gtk.ToolItem):
 
 class DescriptionItem(ToolButton):
 
+    changed_signal = GObject.Signal('changed')
+
     def __init__(self, activity, **kwargs):
         ToolButton.__init__(self, 'edit-description', **kwargs)
+        get_widget_registry().register('description_item', self)
         self.set_tooltip(_('Description'))
         self.palette_invoker.props.toggle_palette = True
         self.palette_invoker.props.lock_palette = True
@@ -298,6 +309,7 @@ class DescriptionItem(ToolButton):
         buf.set_text(jobject['description'])
 
     def __description_changed_cb(self, widget, event, activity):
+        self.changed_signal.emit()
         description = self._get_text_from_buffer()
         if 'description' in activity.metadata and \
                 description == activity.metadata['description']:

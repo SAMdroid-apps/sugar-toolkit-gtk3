@@ -801,6 +801,8 @@ class Invoker(GObject.GObject):
         'right-click': (GObject.SignalFlags.RUN_FIRST, None, ([])),
         'toggle-state': (GObject.SignalFlags.RUN_FIRST, None, ([])),
         'focus-out': (GObject.SignalFlags.RUN_FIRST, None, ([])),
+        'popup': (GObject.SignalFlags.RUN_FIRST, None, ([])),
+        'popdown': (GObject.SignalFlags.RUN_FIRST, None, ([])),
     }
 
     ANCHORED = 0
@@ -991,9 +993,10 @@ class Invoker(GObject.GObject):
         pass
 
     def notify_popup(self):
-        pass
+        self.emit('popup')
 
     def notify_popdown(self):
+        self.emit('popdown')
         self._cursor_x = -1
         self._cursor_y = -1
 
